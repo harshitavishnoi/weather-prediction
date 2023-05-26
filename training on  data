@@ -1,0 +1,27 @@
+#training 
+train = core_data.loc[core_data.index <'2015-01-01']
+test = core_data.loc[core_data.index >= '2015-01-01']
+
+inputs = ['TMIN','TMAX','PRCP']
+target = ['TAVG']
+
+x_train = train[inputs]
+y_train = train[target]
+
+x_test = test[inputs]
+y_test = test[target]
+
+
+regressor =  xgb.XGBRegressor(n_estimators = 1000 ,
+                              learning_rate = 0.001 )            #to decide how many trees will this perticular regressor will use to train )
+regressor.fit(x_train,y_train,
+             eval_set = [(x_train,y_train),(x_test,y_test)],
+             verbose = 100)
+#predictions
+test['y_predicted'] = regressor.predict(x_test)
+
+test['error'] = np.sqrt(np.abs(test['TAVG'] - test['y_predicted']))
+error = (test['error'].sum())/test['error'].count()
+print('average error in predicting the average temperature is', error,'%')
+
+test[['TAVG','y_predicted']]
