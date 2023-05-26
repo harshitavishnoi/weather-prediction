@@ -1,0 +1,145 @@
+# cache data to improve dashboard performance
+if 'data' not in pn.state.cache.keys():
+
+    #df = pd.read_csv('https://raw.githubusercontent.com/owid/co2-data/master/owid-co2-data.csv')
+
+    pn.state.cache['data'] = core_data.copy()
+
+else: 
+
+    core_data = pn.state.cache['data']
+    
+if 'data' not in pn.state.cache.keys():
+
+    #df = pd.read_csv('https://raw.githubusercontent.com/owid/co2-data/master/owid-co2-data.csv')
+
+    pn.state.cache['data'] = test.copy()
+
+else: 
+
+    test = pn.state.cache['data']
+    
+#make dataframe pipeline interactive
+idf = core_data.interactive()
+
+#define panel widgets
+year_slider1 = pn.widgets.IntSlider(name = 'Years',start = 1980,end = 2023,step = 1)
+
+# Radio buttons for TAVG AND PRCP measures
+yaxis_button = pn.widgets.RadioButtonGroup(
+    name='Y axis', 
+    options=['TAVG', 'PRCP',],
+    button_type='success'
+)
+yaxis_button
+
+#connecting widgets to a pipeline
+stations  = ['DELHI 5.0 ESE, NY US','DARWIN AIRPORT, AS', 'DELHI CS, ON CA','DELHI 4.2 WSW, NY US']
+
+tavg_pipeline = (
+    idf[
+        (idf.year <= year_slider1) &
+        (idf.NAME.isin(stations))
+    ]
+    .groupby(['NAME','year'])[yaxis_button].mean()
+    .to_frame()
+    .reset_index()
+    .sort_values(by='year')  
+    .reset_index(drop=True)
+)
+
+precipitation = tavg_pipeline.hvplot(x='year', 
+                                     by= 'NAME', 
+                                     y = yaxis_button , 
+                                     line_width = 2 , 
+                                     title = 'average temperature and precipitation by year')
+
+
+climate_table = tavg_pipeline.pipe(pn.widgets.Tabulator, pagination='remote', page_size = 10, sizing_mode='stretch_width') 
+
+#creating pipeline to add with widgets 
+stations  = ['DELHI 5.0 ESE, NY US','DARWIN AIRPORT, AS', 'DELHI CS, ON CA','DELHI 4.2 WSW, NY US']
+
+source_pipeline = (
+    idf[
+        (idf.year == year_slider1) &
+        (idf.NAME.isin(stations))
+    ]
+    .groupby(['NAME','days of week'])[yaxis_button].mean()
+    .to_frame()
+    .reset_index()
+    .sort_values(by='days of week')  
+    .reset_index(drop=True)
+)
+
+#plotting a scatter plot
+scatter_plot = source_pipeline.hvplot(x='days of week', 
+                                         y= yaxis_button, 
+                                         by='NAME',
+                                         kind="scatter",
+                                         size=80,  
+                                         alpha=0.7,
+                                         legend=False, 
+                                         height=500, 
+                                         width=500)
+
+source_pipeline = (
+    idf[
+        (idf.year == year_slider1) &
+        (idf.NAME.isin(stations))
+    ]
+    .groupby(['NAME','month'])[yaxis_button].mean()
+    .to_frame()
+    .reset_index()
+    .sort_values(by='month')  
+    .reset_index(drop=True)
+)
+
+
+box_plot = source_pipeline.hvplot.box( x = 'month',
+                                            y=yaxis_button, 
+                                            by = 'month',
+                                            grid = True)
+
+
+source_pipeline = (
+    idf[
+        (idf.year == year_slider1) &
+        (idf.NAME.isin(stations))
+    ]
+    .groupby(['NAME','quarter'])[yaxis_button].mean()
+    .to_frame()
+    .reset_index()
+    .sort_values(by='quarter')  
+    .reset_index(drop=True)
+)
+
+
+violin_plot = source_pipeline.hvplot.violin( x = 'quarter',
+                                                y=yaxis_button,
+                                                by = 'quarter',
+                                                grid = True)
+
+
+#Layout using Template
+template = pn.template.FastListTemplate(
+    title='Delhi Weather prediction dashboard', 
+    sidebar=[pn.pane.Markdown("# Average temperature and Climate Change"), 
+             pn.pane.Markdown("#### Allow users to view historical weather data for a specific location. This can include past temperatures, precipitation, and other relevant information"), 
+             pn.pane.PNG('C://Users//Admin//Desktop//sem 6//project//climate.png', sizing_mode='scale_both'),
+             pn.pane.Markdown("## Settings"),   
+             year_slider1],
+    main=[pn.Row(pn.Column(yaxis_button, precipitation.panel(width=700), margin=(0,25)), 
+                 climate_table.panel(width=600)), 
+          pn.Row(pn.Column(source_bar_plot.panel(width=700), margin=(0,25)), 
+                 pn.Column(box_plot.panel(width=600))),
+          pn.Row(pn.Column(violin_plot.panel(width=700), margin=(0,25))) 
+                 
+         ],
+    accent_base_color="#88d8b0",
+    header_background="#88d8b0",
+)
+# template.show()
+template.servable();
+
+template.save('dashboard')
