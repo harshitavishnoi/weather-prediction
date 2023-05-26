@@ -25,3 +25,9 @@ error = (test['error'].sum())/test['error'].count()
 print('average error in predicting the average temperature is', error,'%')
 
 test[['TAVG','y_predicted']]
+
+#plotting the imporatnce of features 
+fimp = pd.DataFrame(data = regressor.feature_importances_,
+                      index = regressor.feature_names_in_,
+                      columns = ['importance'])
+fimp.sort_values('importance').plot(kind = 'barh',title = 'feature importance')
