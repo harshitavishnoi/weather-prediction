@@ -1,0 +1,62 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import boto3
+import xgboost as xgb
+from sklearn.metrics import mean_squared_error 
+import panel as pn
+pn.extension('tabulator')
+import hvplot.pandas
+
+
+#connecting with as cloud and creating a bucket 
+s3_client = boto3.client('s3')
+
+import uuid
+def create_bucket_name(bucket_prefix):
+    #the generated bucket name must be between 3 and 63 chars long
+    return ''.join([bucket_prefix,str(uuid.uuid4())])
+
+
+s3_resource = boto3.resource('s3')
+
+s3_resource.create_bucket(Bucket = 'luckyvv',
+                          CreateBucketConfiguration = {'LocationConstraint':'eu-west-1'})
+
+#storing the file in bucket
+s3_resource.Bucket('luckyvv').upload_file(Filename ="C://Users//Admin//Desktop//sem 6//project//delhi_ncr.csv",Key = 'weather.csv')
+
+for obj in s3_resource.Bucket('luckyvv').objects.all():
+    print(obj)
+    
+obj = s3_resource.Bucket('luckyvv').Object("weather.csv").get()
+data = pd.read_csv(obj['Body'],index_col = 'DATE')
+
+
+#performing eda on dataset
+print(data.head())
+print(data.NAME.unique())
+print(data.columns)
+print(data.index)
+data.isna().sum()
+print(data.dtypes)
+
+data = data.fillna(method = 'ffill')
+data['TAVG'] = (data['TMIN']+data['TMAX'])/2
+
+data.index = pd.to_datetime(data.index,format = "%d-%m-%Y")
+
+def create_feature(df):
+    df['days of week'] = df.index.day
+    df['quarter'] = df.index.quarter
+    df['month'] = df.index.month
+    df['year'] = df.index.year
+    return df
+
+core_data = create_feature(data)
+
+print(core_data)
+
+core_data[['TMAX','TMIN','TAVG']] = core_data[['TMAX','TMIN','TAVG']].fillna(0)
+core_data.isna().sum()
