@@ -1,0 +1,9 @@
+!pip install pandas
+!pip install numpy
+!pip install matplotlib
+!pip install seaborn
+!pip install botocore
+!pip install boto3
+!pip install scikit-learn
+!pip install s3fs
+!pip install xgboost
